@@ -29,11 +29,7 @@ import java.net.URL;
  */
 public class DataFragment extends Fragment {
 
-    public static String TITLE = new String("Title");
-    public static String IMDB = new String("0.0");
-    public static String ROTTEN = new String("");
-    public static TextView imdb;
-    public static TextView title;
+    public static View v;
 
     public DataFragment() {
     }
@@ -41,18 +37,19 @@ public class DataFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View v = inflater.inflate(R.layout.fragment_data, container, false);
+        v = inflater.inflate(R.layout.fragment_data, container, false);
         Intent intent = getActivity().getIntent();
         String toSearch = intent.getExtras().getString(Intent.EXTRA_TEXT);
         FetchData fetch = new FetchData();
         fetch.execute(toSearch);
-
-        title = (TextView) v.findViewById(R.id.title);
-        imdb = (TextView) v.findViewById(R.id.imdb);
-
-        title.setText(TITLE);
-        imdb.setText(IMDB);
         return v;
+    }
+
+    public static void updatePage(String titleText, String imdbRating){
+        TextView imdb  = (TextView) v.findViewById(R.id.imdb);
+        TextView title = (TextView) v.findViewById(R.id.title);
+        title.setText(titleText);
+        imdb.setText(imdbRating);
     }
 }
 
@@ -99,10 +96,7 @@ class FetchData extends AsyncTask<String, Void, String>{
         try {
             JSONObject json = new JSONObject(jsondata);
             Log.e("FetchData convert json", jsondata.toString());
-            DataFragment.TITLE = json.getString("Title");
-            DataFragment.IMDB = json.getString("imdbRating");
-            DataFragment.title.setText(DataFragment.TITLE);
-            DataFragment.imdb.setText(DataFragment.IMDB);
+            DataFragment.updatePage(json.getString("Title"), json.getString("imdbRating"));
         } catch (JSONException e) {
             Log.e("FetchData", e.toString());
              //DataFragment.TITLE = "";
