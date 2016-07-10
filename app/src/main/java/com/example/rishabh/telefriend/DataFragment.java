@@ -1,6 +1,8 @@
 package com.example.rishabh.telefriend;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.ContactsContract;
@@ -24,12 +26,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import com.nostra13.universalimageloader.core.DisplayImageOptions;
-import com.nostra13.universalimageloader.cache.memory.impl.WeakMemoryCache;
-import com.nostra13.universalimageloader.core.ImageLoader;
-import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
-import com.nostra13.universalimageloader.core.assist.ImageScaleType;
-import com.nostra13.universalimageloader.core.display.FadeInBitmapDisplayer;
+import com.androidquery.AQuery;
 
 /**
  * A placeholder fragment containing a simple view.
@@ -37,41 +34,43 @@ import com.nostra13.universalimageloader.core.display.FadeInBitmapDisplayer;
 public class DataFragment extends Fragment {
 
     public static View v;
+    public static AQuery aq;
 
     public DataFragment() {
+    }
+
+    public void onCreate(Bundle savedInstanceState){
+        super.onCreate(savedInstanceState);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         v = inflater.inflate(R.layout.fragment_data, container, false);
+        aq = new AQuery(getActivity(), v);
         Intent intent = getActivity().getIntent();
         String toSearch = intent.getExtras().getString(Intent.EXTRA_TEXT);
+
         FetchData fetch = new FetchData();
         fetch.execute(toSearch);
+        /*
+        ImageView thumbnail = (ImageView) v.findViewById(R.id.thumbnail);
+        thumbnail.setImageResource(R.mipmap.ic_launcher);
+        */
         return v;
     }
 
-    public static void updatePage(String titleText, String imdbRating, String tomatoRating, String Year){
+
+    public static void updatePage(String titleText, String imdbRating, String tomatoRating, String Year, String image){
+
         TextView imdb  = (TextView) v.findViewById(R.id.imdb);
         TextView title = (TextView) v.findViewById(R.id.title);
         TextView rotten = (TextView) v.findViewById(R.id.rotten);
         title.setText(titleText+" ("+Year+")");
         imdb.setText(imdbRating);
-        rotten.setText(tomatoRating);
-        /*
-        String url = "http://ia.media-imdb.com/images/M/MV5BMDM5NjVlYTEtMGQ4Yy00OTk2LWJmMzEtZDkxYjNkMjY5YTVjXkEyXkFqcGdeQXVyNjEyOTQ3ODU@._V1_SX300.jpg";
+        rotten.setText(tomatoRating+"%");
 
-        ImageLoader imageLoader = ImageLoader.getInstance();
-        DisplayImageOptions options = new DisplayImageOptions.Builder().cacheInMemory(true)
-                .cacheOnDisc(true).resetViewBeforeLoading(true).build();
-
-//initialize image view
-        ImageView imageView = (ImageView) v.findViewById(R.id.thumbView);
-
-//download and display image from url
-        imageLoader.displayImage(url, imageView, options);
-        */
+        aq.id(R.id.thumbnail).image(image, false, false);
     }
 }
 
@@ -79,42 +78,6 @@ class FetchData extends AsyncTask<String, Void, String>{
 
     @Override
     public String doInBackground(String... params) {
-        /*
-        Uri.Builder buildURL = new Uri.Builder();
-        buildURL.scheme("http")
-                .authority("www.omdbapi.com")
-                .appendQueryParameter("t", params[0])
-                .appendQueryParameter("tomatoes", "true");
-
-        String link = buildURL.build().toString();
-        Log.e("FetchData", link);
-
-        URL url;
-        HttpURLConnection conn;
-        InputStream is;
-        BufferedReader buffer;
-        StringBuffer jsondata = new StringBuffer("");
-
-        try {
-            url = new URL(link);
-            conn = (HttpURLConnection) url.openConnection();
-            Log.v("FetchData", "HttpUrlConnection working");
-            is = conn.getInputStream();
-            buffer = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-            String line;
-            while((line = buffer.readLine()) != null){
-                jsondata.append(line + "\n");
-            }
-            conn.disconnect();
-            Log.e("FetchData", jsondata.toString());
-            return jsondata.toString();
-        }
-        catch(Exception e){
-            Log.e("FetchData", "Did not connect");
-            return "";
-        }
-        */
-
         HttpURLConnection urlConnection = null;
         BufferedReader reader = null;
 
@@ -131,12 +94,15 @@ class FetchData extends AsyncTask<String, Void, String>{
             URL url = new URL(buildURL.build().toString());
 
             urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection.setConnectTimeout(5000);
+            urlConnection.setReadTimeout(10000);
             urlConnection.setRequestMethod("GET");
             urlConnection.connect();
 
             InputStream inputStream = urlConnection.getInputStream();
             StringBuffer buffer = new StringBuffer();
             if (inputStream == null) {
+                Log.e("FetchData", "inputStream is null");
                 return null;
             }
             reader = new BufferedReader(new InputStreamReader(inputStream));
@@ -151,6 +117,7 @@ class FetchData extends AsyncTask<String, Void, String>{
             }
             forecastJsonStr = buffer.toString();
         } catch (IOException e) {
+            Log.e("FetchData", "IOException: "+e.toString());
             return null;
         } finally {
             if (urlConnection != null) {
@@ -164,8 +131,6 @@ class FetchData extends AsyncTask<String, Void, String>{
             }
         }
         return forecastJsonStr;
-
-
     }
 
     public void onPostExecute(String jsondata){
@@ -174,14 +139,15 @@ class FetchData extends AsyncTask<String, Void, String>{
             Log.e("FetchData convert json", jsondata.toString());
             DataFragment.updatePage(json.getString("Title"),
                     json.getString("imdbRating"),
-                    json.getString("tomatoRating"),
-                    json.getString("Year")
+                    json.getString("tomatoUserMeter"),
+                    json.getString("Year"),
+                    json.getString("Poster")
+                    //getImage(json.getString("Poster"))
+                    //null
             );
-        } catch (JSONException e) {
+        } catch (Exception e) {
             Log.e("FetchData", e.toString());
              //DataFragment.TITLE = "";
         }
     }
 }
-
-//TODO: Implement Universal Image Loader
